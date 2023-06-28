@@ -46,6 +46,9 @@ def get_dataset(data_path: str, train_test_ratio, tokenizer):
     # Load the csv
     dataset = load_dataset("csv", data_files=data_path)
 
+    # Clear out faulty samples
+    dataset = dataset.filter(lambda example: example['text'] is not None)
+
     # Tokenize "text" column
     dataset = dataset.map(tokenize_fn, fn_kwargs={"tokenizer": tokenizer}, batched=True)
 
