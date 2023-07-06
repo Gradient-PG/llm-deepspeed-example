@@ -19,6 +19,12 @@ def parse_arguments():
         help="Model name on HuggingFace",
     )
     parser.add_argument(
+        "--model_max_length",
+        default=2048,
+        type=int,
+        help="Maximum input length of the model (in tokens)"
+    )
+    parser.add_argument(
         "--data_path", required=True, help='Path to a .csv file with a "text" column'
     )
     parser.add_argument(
@@ -86,7 +92,7 @@ def main(args):
     model = AutoModelForCausalLM.from_pretrained(args.model_path)
 
     # Load the tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(args.model_path)
+    tokenizer = AutoTokenizer.from_pretrained(args.model_path, model_max_length=args.model_max_length)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     # Get the dataset dict
@@ -105,7 +111,6 @@ def main(args):
     )
     # Train
     trainer.train()
-
 
 if __name__ == "__main__":
     args = parse_arguments()
