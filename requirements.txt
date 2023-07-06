@@ -1,3 +1,4 @@
 transformers[deepspeed]
 datasets
 mpi4py
+wandb

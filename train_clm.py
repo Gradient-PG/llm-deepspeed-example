@@ -6,6 +6,8 @@ from transformers import (
     TrainingArguments,
 )
 from datasets import load_dataset, DatasetDict
+import wandb
+import datetime
 import argparse
 
 
@@ -61,6 +63,8 @@ def get_dataset(data_path: str, train_test_ratio, tokenizer):
 
 
 def main(args):
+    model_type = args.model_path.split('/')[-1]
+    wandb.init(project="Projekt_expert", name=model_type + "_climate_policy_radar_" + str(datetime.date.today()))
     # Build trainer args
     # Note: This MUST be before loading the model.
     # https://huggingface.co/docs/transformers/main_classes/deepspeed#constructing-massive-models
@@ -68,9 +72,11 @@ def main(args):
         per_device_train_batch_size=args.batch_size,
         per_device_eval_batch_size=args.batch_size,
         logging_steps=1,
+        report_to=["wandb"],
         output_dir=args.output_dir,
         num_train_epochs=args.epochs,
         deepspeed=args.deepspeed,
+        push_to_hub=False,
     )
 
     # Load the model
