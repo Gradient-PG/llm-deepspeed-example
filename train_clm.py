@@ -80,6 +80,7 @@ def main(args):
     trainer_args = TrainingArguments(
         per_device_train_batch_size=args.batch_size,
         per_device_eval_batch_size=args.batch_size,
+        evaluation_strategy="epoch",
         logging_steps=1,
         report_to=["wandb"],
         output_dir=args.output_dir,
