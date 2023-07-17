@@ -25,6 +25,12 @@ def parse_arguments():
         help="Maximum input length of the model (in tokens)"
     )
     parser.add_argument(
+        "--save_log_per_epoch",
+        default=4,
+        type=int,
+        help="Amount of checkpoints (and evaluations) per epoch of training."
+    )
+    parser.add_argument(
         "--data_path", required=True, help='Path to a .csv file with a "text" column'
     )
     parser.add_argument(
@@ -74,23 +80,6 @@ def get_dataset(data_path: str, train_test_ratio, tokenizer):
 def main(args):
     model_type = args.model_path.split('/')[-1]
     wandb.init(project="Projekt_expert", name=model_type + "_climate_policy_radar_" + str(datetime.date.today()))
-    # Build trainer args
-    # Note: This MUST be before loading the model.
-    # https://huggingface.co/docs/transformers/main_classes/deepspeed#constructing-massive-models
-    trainer_args = TrainingArguments(
-        per_device_train_batch_size=args.batch_size,
-        per_device_eval_batch_size=args.batch_size,
-        evaluation_strategy="epoch",
-        logging_steps=1,
-        report_to=["wandb"],
-        output_dir=args.output_dir,
-        num_train_epochs=args.epochs,
-        deepspeed=args.deepspeed,
-        push_to_hub=False,
-    )
-
-    # Load the model
-    model = AutoModelForCausalLM.from_pretrained(args.model_path)
 
     # Load the tokenizer
     tokenizer = AutoTokenizer.from_pretrained(args.model_path, model_max_length=args.model_max_length)
@@ -101,6 +90,29 @@ def main(args):
 
     # Load the data collator
     data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False)
+
+    total_steps_per_epoch = len(dataset["train"]) / args.batch_size
+    save_eval_steps = int(total_steps_per_epoch / args.save_log_per_epoch)
+
+    # Build trainer args
+    # Note: This MUST be before loading the model.
+    # https://huggingface.co/docs/transformers/main_classes/deepspeed#constructing-massive-models
+    trainer_args = TrainingArguments(
+        per_device_train_batch_size=args.batch_size,
+        per_device_eval_batch_size=args.batch_size,
+        evaluation_strategy="steps",
+        eval_steps=save_eval_steps,
+        save_steps=save_eval_steps,
+        logging_steps=1,
+        report_to=["wandb"],
+        output_dir=args.output_dir,
+        num_train_epochs=args.epochs,
+        deepspeed=args.deepspeed,
+        push_to_hub=False,
+    )
+
+    # Load the model
+    model = AutoModelForCausalLM.from_pretrained(args.model_path)
 
     # Init the trainer
     trainer = Trainer(
